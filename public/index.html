@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebDAV图床系统</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #2c3e50;
+    }
+    
+    .upload-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .upload-section:hover {
+      border-color: #3498db;
+    }
+    
+    .upload-section.dragover {
+      background-color: rgba(52, 152, 219, 0.1);
+      border-color: #3498db;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .file-label {
+      display: block;
+      text-align: center;
+      padding: 15px;
+      background-color: #3498db;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    
+    .file-label:hover {
+      background-color: #2980b9;
+    }
+    
+    .preview-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .preview-image {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .upload-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .upload-btn:hover {
+      background-color: #27ae60;
+    }
+    
+    .upload-btn:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+    }
+    
+    .result-section {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      display: none;
+    }
+    
+    .result-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+    
+    .result-item {
+      margin-bottom: 10px;
+    }
+    
+    .result-label {
+      font-weight: bold;
+      display: inline-block;
+      width: 120px;
+    }
+    
+    .result-value {
+      word-break: break-all;
+    }
+    
+    .copy-btn {
+      padding: 5px 10px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    
+    .copy-btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .image-list {
+      margin-top: 40px;
+    }
+    
+    .image-list-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .image-item {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .image-item:hover {
+      transform: translateY(-5px);
+    }
+    
+    .image-thumbnail {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    
+    .image-info {
+      padding: 10px;
+      background-color: white;
+    }
+    
+    .image-name {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .image-meta {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+    
+    .image-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    
+    .image-btn {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .view-btn {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .delete-btn {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      display: none;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      color: #e74c3c;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
+    .pagination-btn {
+      padding: 8px 15px;
+      margin: 0 5px;
+      border: 1px solid #ddd;
+      background-color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .pagination-btn.active {
+      background-color: #3498db;
+      color: white;
+      border-color: #3498db;
+    }
+    
+    .pagination-btn:hover:not(.active) {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WebDAV图床系统</h1>
+    
+    <div class="upload-section" id="dropArea">
+      <input type="file" id="fileInput" class="file-input" accept="image/*">
+      <label for="fileInput" class="file-label">选择图片或拖放到此处</label>
+      
+      <div class="preview-container">
+        <img id="previewImage" class="preview-image" alt="预览图片">
+      </div>
+      
+      <button id="uploadBtn" class="upload-btn" disabled>上传图片</button>
+      
+      <div id="errorMessage" class="error-message"></div>
+      
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>上传中...</p>
+      </div>
+    </div>
+    
+    <div id="resultSection" class="result-section">
+      <div class="result-title">上传成功</div>
+      
+      <div class="result-item">
+        <span class="result-label">图片URL:</span>
+        <span id="imageUrl" class="result-value"></span>
+        <button class="copy-btn" data-copy="imageUrl">复制</button>
+      </div>
+      
+      <div class="result-item">
+        <span class="result-label">Markdown:</span>
+        <span id="markdownCode" class="result-value"></span>
+        <button class="copy-btn" data-copy="markdownCode">复制</button>
+      </div>
+      
+      <div class="result-item">
+        <span class="result-label">HTML:</span>
+        <span id="htmlCode" class="result-value"></span>
+        <button class="copy-btn" data-copy="htmlCode">复制</button>
+      </div>
+    </div>
+    
+    <div class="image-list">
+      <h2 class="image-list-title">已上传图片</h2>
+      
+      <div id="imageGrid" class="image-grid">
+        <!-- 图片列表将通过JavaScript动态加载 -->
+      </div>
+      
+      <div id="pagination" class="pagination">
+        <!-- 分页控件将通过JavaScript动态加载 -->
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 元素引用
+      const dropArea = document.getElementById('dropArea');
+      const fileInput = document.getElementById('fileInput');
+      const previewImage = document.getElementById('previewImage');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const loading = document.getElementById('loading');
+      const errorMessage = document.getElementById('errorMessage');
+      const resultSection = document.getElementById('resultSection');
+      const imageUrl = document.getElementById('imageUrl');
+      const markdownCode = document.getElementById('markdownCode');
+      const htmlCode = document.getElementById('htmlCode');
+      const imageGrid = document.getElementById('imageGrid');
+      const pagination = document.getElementById('pagination');
+      
+      // 当前页码和每页数量
+      let currentPage = 1;
+      const itemsPerPage = 12;
+      
+      // 拖放功能
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight() {
+        dropArea.classList.add('dragover');
+      }
+      
+      function unhighlight() {
+        dropArea.classList.remove('dragover');
+      }
+      
+      dropArea.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+          handleFiles(files);
+        }
+      }
+      
+      // 文件选择处理
+      fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+          handleFiles(fileInput.files);
+        }
+      });
+      
+      function handleFiles(files) {
+        const file = files[0];
+        
+        // 检查是否为图片
+        if (!file.type.match('image.*')) {
+          showError('请选择图片文件');
+          return;
+        }
+        
+        // 检查文件大小
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+          showError(`文件大小不能超过10MB，当前文件大小: ${formatFileSize(file.size)}`);
+          return;
+        }
+        
+        // 预览图片
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImage.src = e.target.result;
+          previewImage.style.display = 'block';
+          uploadBtn.disabled = false;
+          hideError();
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      // 上传处理
+      uploadBtn.addEventListener('click', function() {
+        if (fileInput.files.length === 0) {
+          showError('请先选择图片');
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        uploadImage(file);
+      });
+      
+      function uploadImage(file) {
+        // 显示加载状态
+        loading.style.display = 'block';
+        uploadBtn.disabled = true;
+        hideError();
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        fetch('/api/images/upload', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.message || '上传失败');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          // 隐藏加载状态
+          loading.style.display = 'none';
+          
+          if (data.success) {
+            // 显示结果
+            showResult(data.data);
+            // 重新加载图片列表
+            loadImages(currentPage);
+          } else {
+            showError(data.message || '上传失败');
+            uploadBtn.disabled = false;
+          }
+        })
+        .catch(error => {
+          loading.style.display = 'none';
+          showError(error.message || '上传失败');
+          uploadBtn.disabled = false;
+        });
+      }
+      
+      // 显示上传结果
+      function showResult(data) {
+        imageUrl.textContent = data.url;
+        markdownCode.textContent = `![图片](${data.url})`;
+        htmlCode.textContent = `<img src="${data.url}" alt="图片">`;
+        
+        resultSection.style.display = 'block';
+        
+        // 重置上传表单
+        fileInput.value = '';
+        previewImage.style.display = 'none';
+        uploadBtn.disabled = true;
+      }
+      
+      // 复制功能
+      document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-copy');
+          const targetElement = document.getElementById(targetId);
+          const text = targetElement.textContent;
+          
+          navigator.clipboard.writeText(text).then(() => {
+            const originalText = this.textContent;
+            this.textContent = '已复制';
+            
+            setTimeout(() => {
+              this.textContent = originalText;
+            }, 2000);
+          }).catch(err => {
+            console.error('复制失败:', err);
+          });
+        });
+      });
+      
+      // 加载图片列表
+      function loadImages(page) {
+        fetch(`/api/images?page=${page}&limit=${itemsPerPage}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              renderImages(data.data);
+              renderPagination(data.pagination);
+            }
+          })
+          .catch(error => {
+            console.error('加载图片列表失败:', error);
+          });
+      }
+      
+      // 渲染图片列表
+      function renderImages(images) {
+        imageGrid.innerHTML = '';
+        
+        if (images.length === 0) {
+          imageGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">暂无图片</p>';
+          return;
+        }
+        
+        images.forEach(image => {
+          const imageItem = document.createElement('div');
+          imageItem.className = 'image-item';
+          
+          imageItem.innerHTML = `
+            <img src="${image.url}" alt="${image.filename}" class="image-thumbnail">
+            <div class="image-info">
+              <div class="image-name">${image.filename}</div>
+              <div class="image-meta">${formatFileSize(image.size)} · ${formatDate(image.created_at)}</div>
+              <div class="image-actions">
+                <a href="${image.url}" target="_blank" class="image-btn view-btn">查看</a>
+                <button class="image-btn delete-btn" data-id="${image.id}">删除</button>
+              </div>
+            </div>
+          `;
+          
+          imageGrid.appendChild(imageItem);
+        });
+        
+        // 添加删除事件监听
+        document.querySelectorAll('.delete-btn').forEach(button => {
+          button.addEventListener('click', function() {
+            const imageId = this.getAttribute('data-id');
+            deleteImage(imageId);
+          });
+        });
+      }
+      
+      // 渲染分页
+      function renderPagination(paginationData) {
+        pagination.innerHTML = '';
+        
+        const { total, page, limit, totalPages } = paginationData;
+        
+        if (totalPages <= 1) {
+          return;
+        }
+        
+        // 上一页按钮
+        if (page > 1) {
+          const prevBtn = document.createElement('button');
+          prevBtn.className = 'pagination-btn';
+          prevBtn.textContent = '上一页';
+          prevBtn.addEventListener('click', () => loadImages(page - 1));
+          pagination.appendChild(prevBtn);
+        }
+        
+        // 页码按钮
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(totalPages, page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.className = 'pagination-btn' + (i === page ? ' active' : '');
+          pageBtn.textContent = i;
+          pageBtn.addEventListener('click', () => loadImages(i));
+          pagination.appendChild(pageBtn);
+        }
+        
+        // 下一页按钮
+        if (page < totalPages) {
+          const nextBtn = document.createElement('button');
+          nextBtn.className = 'pagination-btn';
+          nextBtn.textContent = '下一页';
+          nextBtn.addEventListener('click', () => loadImages(page + 1));
+          pagination.appendChild(nextBtn);
+        }
+      }
+      
+      // 删除图片
+      function deleteImage(id) {
+        if (!confirm('确定要删除这张图片吗？')) {
+          return;
+        }
+        
+        fetch(`/api/images/${id}`, {
+          method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            loadImages(currentPage);
+          } else {
+            alert(data.message || '删除失败');
+          }
+        })
+        .catch(error => {
+          console.error('删除图片失败:', error);
+          alert('删除失败');
+        });
+      }
+      
+      // 辅助函数
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+      }
+      
+      function hideError() {
+        errorMessage.style.display = 'none';
+      }
+      
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+      
+      function formatDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleDateString();
+      }
+      
+      // 初始加载图片列表
+      loadImages(currentPage);
+    });
+  </script>
+</body>
+</html>
