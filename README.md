@@ -2,6 +2,9 @@
 
 基于WebDAV协议的高性能图床系统，支持文件名加密，使用Node.js和SQLite构建，能够承受千万级数据。
 
+![image](https://github.com/user-attachments/assets/207764dc-d37e-4116-9b08-4e235f3aca90)
+
+
 ## 功能特点
 
 - 基于WebDAV协议，可连接各种WebDAV服务（如NextCloud、ownCloud等）
