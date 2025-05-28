@@ -63,6 +63,13 @@ DB_PATH=./data/imagebed.db
 # 上传配置
 UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=10485760 # 10MB
+
+# 图片配置
+IMAGE_IDENTIFIER=_404img # 图片文件名标识符（用于校验文件名是否是由服务器生成）
+
+# 日志配置
+# 可选值: DEBUG, INFO, WARN, ERROR
+LOG_LEVEL=INFO
 ```
 
 注意：

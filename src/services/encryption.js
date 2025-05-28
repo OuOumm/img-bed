@@ -105,8 +105,11 @@ export function generateImageFilename(extension) {
     // 生成8位随机文件名
     const randomName = generateRandomFilename(8);
     
-    // 添加404img标识
-    const filenameWithIdentifier = `${randomName}_404img`;
+    // 从环境变量获取图片标识，默认为 "_404img"
+    const imageIdentifier = process.env.IMAGE_IDENTIFIER || "_404img";
+    
+    // 添加图片标识
+    const filenameWithIdentifier = `${randomName}${imageIdentifier}`;
     
     // 加密文件名
     const encryptedName = encryptFilename(filenameWithIdentifier);
@@ -135,7 +138,10 @@ export function generateImageFilename(extension) {
 export function validateEncryptedFilename(encryptedName) {
   try {
     const decrypted = decryptFilename(encryptedName);
-    return decrypted.includes('_404img');
+    // 从环境变量获取图片标识，默认为 "_404img"
+    const imageIdentifier = process.env.IMAGE_IDENTIFIER || "_404img";
+    
+    return decrypted.includes(imageIdentifier);
   } catch (error) {
     logger.error(`验证加密文件名失败: ${error.message}`);
     return false;
